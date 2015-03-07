@@ -60,7 +60,6 @@ contains
 
       if (omega_uninitialized) coriolis_omega = 0.
 
-      if (dom%geometry_type /= GEO_XYZ) call die("[coriolis:init_coriolis] Only cartesian geometry is implemented")
 #if !(defined GRAV || defined SHEAR )
       call die("[coriolis:init_coriolis] Check how and under what conditions the rtvd::relaxing_tvd handles additional source terms")
 #endif /* !(GRAV || SHEAR ) */
@@ -88,15 +87,26 @@ contains
       real, dimension(flind%fluids, size(u,2)) :: rotacc !< an array for Coriolis accelerations
 
       ! Coriolis force for corotating coords
-      select case (sweep)
-         case (xdim)
-            rotacc(:,:) = +2.0 * coriolis_omega * u(iarr_all_my(:), :)/u(iarr_all_dn(:), :)
-         case (ydim)
-            rotacc(:,:) = -2.0 * coriolis_omega * u(iarr_all_mx(:), :)/u(iarr_all_dn(:), :)
-!         case (zdim) !no z-component of the Coriolis force
-         case default
-            rotacc(:,:) = 0.0
-      end select
+      ! Cartesian coords
+      if (dom%geometry_type == GEO_XYZ) then
+         select case (sweep)
+            case (xdim)
+               rotacc(:,:) = +2.0 * coriolis_omega * u(iarr_all_my(:), :)/u(iarr_all_dn(:), :)
+            case (ydim)
+               rotacc(:,:) = -2.0 * coriolis_omega * u(iarr_all_mx(:), :)/u(iarr_all_dn(:), :)
+!            case (zdim) !no z-component of the Coriolis force
+            case default
+               rotacc(:,:) = 0.0
+         end select
+      ! cylindrical coords
+      else if (dom%geometry_type == GEO_RPZ) then
+         select case (sweep)
+            case (ydim)
+               rotacc(:,:) = +2.0 * coriolis_omega * u(iarr_all_mx(:), :)/u(iarr_all_dn(:), :)
+            case default
+               rotacc(:,:) = 0.0
+         end select
+      endif
 
    end function coriolis_force
 
